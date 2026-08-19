@@ -29,10 +29,13 @@ type PostLinkParams struct {
 func PostLink(c echo.Context) error {
 	var params PostLinkParams
 	if err := c.Bind(&params); err != nil {
-		return c.String(http.StatusBadRequest, "bad request")
+		return c.JSON(http.StatusBadRequest, "bad request")
 	}
 
-	store.GetShortenedURL(params.LongURL)
+	shortenedUrl, err := store.GetShortenedURL(params.LongURL)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, "something went sideways")
+	}
 
-	return c.String(http.StatusOK, "poop scoop")
+	return c.JSON(http.StatusCreated, struct{ link string }{link: shortenedUrl})
 }
