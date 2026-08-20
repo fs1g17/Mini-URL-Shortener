@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/fs1g17/Mini-URL-Shortener/internal/store"
@@ -63,8 +64,11 @@ func (app *App) GetRedirect(c echo.Context) error {
 
 	redirectUrl, err := app.LinkStore.GetRedirectURL(params.Slug)
 	if err != nil {
+		if errors.Is(err, store.NoRedirectUrl) {
+			return c.JSON(http.StatusNotFound, "not found")
+		}
 		return c.JSON(http.StatusInternalServerError, "something went sideways")
 	}
 
-	return c.Redirect(200, redirectUrl)
+	return c.Redirect(http.StatusTemporaryRedirect, redirectUrl)
 }

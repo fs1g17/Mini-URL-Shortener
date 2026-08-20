@@ -9,8 +9,8 @@ import (
 	"github.com/jackc/pgx"
 )
 
-var collisionErr = errors.New("slug already exists")
-var noRedirectUrl = errors.New("no")
+var CollisionErr = errors.New("slug already exists")
+var NoRedirectUrl = errors.New("no")
 
 type LinkStore struct {
 	conn *pgx.Conn
@@ -37,7 +37,7 @@ func (ls *LinkStore) GetShortenedURL(longUrl string) (string, error) {
 		if errors.As(err, &pgErr) {
 			if pgErr.Code == "23505" {
 				// it's a unique violation
-				return "", collisionErr
+				return "", CollisionErr
 			}
 		}
 		return "", err
@@ -51,7 +51,7 @@ func (ls *LinkStore) GetRedirectURL(slug string) (string, error) {
 	err := ls.conn.QueryRow("SELECT redirect_url FROM redirect_map WHERE slug = $1;", slug).Scan(&redirect_url)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return "", noRedirectUrl
+			return "", NoRedirectUrl
 		}
 		return "", err
 	}
