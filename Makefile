@@ -9,3 +9,4 @@ up:
 
 down:
 	goose down
+	docker compose down

@@ -3,23 +3,58 @@ package store
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
+
+	"github.com/jackc/pgconn"
+	"github.com/jackc/pgx"
 )
 
-func GetShortenedURL(longUrl string) (string, error) {
-	conn := Connect()
+var collisionErr = errors.New("slug already exists")
+var noRedirectUrl = errors.New("no")
 
+type LinkStore struct {
+	conn *pgx.Conn
+}
+
+func NewLinkStore(conn *pgx.Conn) *LinkStore {
+	return &LinkStore{
+		conn: conn,
+	}
+}
+
+func (ls *LinkStore) GetShortenedURL(longUrl string) (string, error) {
 	hasher := sha256.New()
 	hasher.Write([]byte(longUrl))
 
 	hashBytes := hasher.Sum(nil)
 	hashString := hex.EncodeToString(hashBytes)
 
-	slug := hashString[len(hashString)-7:]
+	slug := hashString[len(hashString)-6:]
 
-	_, err := conn.Exec("INSERT INTO redirect_map (slug, redirect_url) VALUES ($1, $2);", slug, longUrl)
+	_, err := ls.conn.Exec("INSERT INTO redirect_map (slug, redirect_url) VALUES ($1, $2);", slug, longUrl)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			if pgErr.Code == "23505" {
+				// it's a unique violation
+				return "", collisionErr
+			}
+		}
 		return "", err
 	}
 
 	return slug, nil
+}
+
+func (ls *LinkStore) GetRedirectURL(slug string) (string, error) {
+	var redirect_url string
+	err := ls.conn.QueryRow("SELECT redirect_url FROM redirect_map WHERE slug = $1;", slug).Scan(&redirect_url)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", noRedirectUrl
+		}
+		return "", err
+	}
+
+	return redirect_url, nil
 }
