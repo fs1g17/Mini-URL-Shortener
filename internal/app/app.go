@@ -5,13 +5,12 @@ import (
 	"net/http"
 
 	"github.com/fs1g17/Mini-URL-Shortener/internal/store"
-	"github.com/jackc/pgx"
 	"github.com/labstack/echo/v4"
 )
 
 type App struct {
-	Conn      *pgx.Conn
 	LinkStore LinkStoreI
+	UserStore UserStoreI
 }
 
 type LinkStoreI interface {
@@ -19,12 +18,17 @@ type LinkStoreI interface {
 	GetRedirectURL(slug string) (string, error)
 }
 
+type UserStoreI interface {
+	CreateUser(username string, password string) (int, error)
+}
+
 func NewApp() *App {
 	conn := store.Connect()
 	linkStore := store.NewLinkStore(conn)
+	userStore := store.NewUserStore(conn)
 	return &App{
-		Conn:      conn,
 		LinkStore: linkStore,
+		UserStore: userStore,
 	}
 }
 
@@ -71,4 +75,30 @@ func (app *App) GetRedirect(c echo.Context) error {
 	}
 
 	return c.Redirect(http.StatusTemporaryRedirect, redirectUrl)
+}
+
+type CreateUserParams struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+func (app *App) CreateUser(c echo.Context) error {
+	var params CreateUserParams
+	if err := c.Bind(&params); err != nil {
+		return c.JSON(http.StatusBadRequest, "bad request")
+	}
+
+	user_id, err := app.UserStore.CreateUser(params.Username, params.Password)
+	if err != nil {
+		if errors.Is(err, store.UsernameTakenErr) {
+			return c.JSON(http.StatusConflict, struct {
+				Message string `json:"message"`
+			}{Message: "username already taken"})
+		}
+		return c.JSON(http.StatusInternalServerError, "couldn't create user")
+	}
+
+	return c.JSON(http.StatusCreated, struct {
+		UserId int `json:"user_id"`
+	}{UserId: user_id})
 }

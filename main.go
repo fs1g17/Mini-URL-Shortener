@@ -14,6 +14,7 @@ func main() {
 
 	e.GET("/hello-world", GetHelloWorld)
 	e.POST("/link", app.PostLink)
+	e.POST("/user", app.CreateUser)
 	e.GET("/:slug", app.GetRedirect)
 
 	if err := e.Start(":8080"); err != nil {

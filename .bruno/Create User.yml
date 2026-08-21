@@ -1,0 +1,22 @@
+info:
+  name: Create User
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: http://localhost:8080/user
+  body:
+    type: json
+    data: |-
+      {
+        "username": "theo",
+        "password": "test"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

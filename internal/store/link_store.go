@@ -1,12 +1,13 @@
 package store
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 
-	"github.com/jackc/pgconn"
-	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 var CollisionErr = errors.New("slug already exists")
@@ -31,7 +32,7 @@ func (ls *LinkStore) GetShortenedURL(longUrl string) (string, error) {
 
 	slug := hashString[len(hashString)-6:]
 
-	_, err := ls.conn.Exec("INSERT INTO redirect_map (slug, redirect_url) VALUES ($1, $2);", slug, longUrl)
+	_, err := ls.conn.Exec(context.Background(), "INSERT INTO redirect_map (slug, redirect_url) VALUES ($1, $2);", slug, longUrl)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -48,7 +49,7 @@ func (ls *LinkStore) GetShortenedURL(longUrl string) (string, error) {
 
 func (ls *LinkStore) GetRedirectURL(slug string) (string, error) {
 	var redirect_url string
-	err := ls.conn.QueryRow("SELECT redirect_url FROM redirect_map WHERE slug = $1;", slug).Scan(&redirect_url)
+	err := ls.conn.QueryRow(context.Background(), "SELECT redirect_url FROM redirect_map WHERE slug = $1;", slug).Scan(&redirect_url)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", NoRedirectUrl
