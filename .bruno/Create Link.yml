@@ -5,7 +5,10 @@ info:
 
 http:
   method: POST
-  url: http://localhost:8080/link
+  url: http://localhost:8080/user/link
+  headers:
+    - name: Authorization
+      value: "\tBearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6InRoZW8ifQ.mJh2Z9iehouu5x5MscSFyME8u-0VlvB9jsN3qtCLKys"
   body:
     type: json
     data: |-
@@ -19,3 +22,4 @@ settings:
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+  forwardAuthorizationHeader: true

@@ -10,6 +10,7 @@ import (
 )
 
 var UsernameTakenErr = errors.New("username is already taken")
+var IncorrectInfoErr = errors.New("incorrect username or password")
 
 type UserStore struct {
 	conn *pgx.Conn
@@ -55,12 +56,27 @@ func verifyPassword(password, hash string) bool {
 	return err == nil
 }
 
-func (us *UserStore) SignIn(username string, password string) (bool, error) {
+// func (us *UserStore) SignIn(username string, password string) (bool, error) {
+// 	var password_hash string
+// 	err := us.conn.QueryRow(context.Background(), "SELECT password_hash FROM users WHERE username = $1;", username).Scan(&password_hash)
+// 	if err != nil {
+// 		return false, err
+// 	}
+
+// 	return verifyPassword(password, password_hash), nil
+// }
+
+func (us *UserStore) SignIn(username string, password string) (int, error) {
+	var id int
 	var password_hash string
-	err := us.conn.QueryRow(context.Background(), "SELECT password_hash FROM users WHERE username = $1;", username).Scan(&password_hash)
+	err := us.conn.QueryRow(context.Background(), "SELECT id, password_hash FROM users WHERE username = $1;", username).Scan(&id, &password_hash)
 	if err != nil {
-		return false, err
+		return 0, err
 	}
 
-	return verifyPassword(password, password_hash), nil
+	if ok := verifyPassword(password, password_hash); !ok {
+		return 0, IncorrectInfoErr
+	}
+
+	return id, nil
 }

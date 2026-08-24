@@ -10,8 +10,9 @@ import (
 )
 
 type App struct {
-	LinkStore LinkStoreI
-	UserStore UserStoreI
+	signingSecret string
+	LinkStore     LinkStoreI
+	UserStore     UserStoreI
 }
 
 type LinkStoreI interface {
@@ -21,16 +22,17 @@ type LinkStoreI interface {
 
 type UserStoreI interface {
 	CreateUser(username string, password string) (int, error)
-	SignIn(username string, password string) (bool, error)
+	SignIn(username string, password string) (int, error)
 }
 
-func NewApp() *App {
+func NewApp(signingSecret string) *App {
 	conn := store.Connect()
 	linkStore := store.NewLinkStore(conn)
 	userStore := store.NewUserStore(conn)
 	return &App{
-		LinkStore: linkStore,
-		UserStore: userStore,
+		signingSecret: signingSecret,
+		LinkStore:     linkStore,
+		UserStore:     userStore,
 	}
 }
 
@@ -116,20 +118,20 @@ func (app *App) SignIn(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, "bad request")
 	}
 
-	signed_in, err := app.UserStore.SignIn(params.Username, params.Password)
+	user_id, err := app.UserStore.SignIn(params.Username, params.Password)
 	if err != nil {
+		if errors.Is(err, store.IncorrectInfoErr) {
+			return c.JSON(http.StatusUnauthorized, "incorrect username or password")
+		}
 		return c.JSON(http.StatusInternalServerError, "something went sideways")
-	}
-
-	if !signed_in {
-		return c.JSON(http.StatusUnauthorized, "incorrect username or password")
 	}
 
 	// generate jwt
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"username": params.Username,
+		"user_id":  user_id,
 	})
-	tokenString, err := token.SignedString([]byte("secret"))
+	tokenString, err := token.SignedString([]byte(app.signingSecret))
 
 	c.Response().Header().Set("Authorization", "Bearer "+tokenString)
 	return c.JSON(http.StatusOK, "signed in")
