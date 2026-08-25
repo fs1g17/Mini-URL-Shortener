@@ -2,10 +2,9 @@ package store
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
-	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -24,14 +23,14 @@ func NewLinkStore(conn *pgx.Conn) *LinkStore {
 	}
 }
 
+func generateSlug() string {
+	b := make([]byte, 4)
+	rand.Read(b)
+	return base64.RawURLEncoding.EncodeToString(b)
+}
+
 func (ls *LinkStore) CreateShortenedURL(longUrl string, user_id int) (string, error) {
-	hasher := sha256.New()
-	hasher.Write([]byte(longUrl + fmt.Sprint(user_id)))
-
-	hashBytes := hasher.Sum(nil)
-	hashString := hex.EncodeToString(hashBytes)
-
-	slug := hashString[len(hashString)-6:]
+	slug := generateSlug()
 
 	_, err := ls.conn.Exec(context.Background(), "INSERT INTO redirect_map (slug, redirect_url, user_id) VALUES ($1, $2, $3);", slug, longUrl, user_id)
 	if err != nil {
