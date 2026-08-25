@@ -8,5 +8,5 @@ up:
 	goose up
 
 down:
-	goose down
+	goose reset
 	docker compose down

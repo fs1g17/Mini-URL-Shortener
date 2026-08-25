@@ -61,6 +61,9 @@ func (us *UserStore) SignIn(username string, password string) (int, error) {
 	var password_hash string
 	err := us.conn.QueryRow(context.Background(), "SELECT id, password_hash FROM users WHERE username = $1;", username).Scan(&id, &password_hash)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, IncorrectInfoErr
+		}
 		return 0, err
 	}
 

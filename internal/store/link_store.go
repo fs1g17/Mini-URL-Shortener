@@ -24,7 +24,7 @@ func NewLinkStore(conn *pgx.Conn) *LinkStore {
 	}
 }
 
-func (ls *LinkStore) GetShortenedURL(longUrl string, user_id int) (string, error) {
+func (ls *LinkStore) CreateShortenedURL(longUrl string, user_id int) (string, error) {
 	hasher := sha256.New()
 	hasher.Write([]byte(longUrl + fmt.Sprint(user_id)))
 
@@ -33,7 +33,7 @@ func (ls *LinkStore) GetShortenedURL(longUrl string, user_id int) (string, error
 
 	slug := hashString[len(hashString)-6:]
 
-	_, err := ls.conn.Exec(context.Background(), "INSERT INTO redirect_map (slug, redirect_url) VALUES ($1, $2);", slug, longUrl)
+	_, err := ls.conn.Exec(context.Background(), "INSERT INTO redirect_map (slug, redirect_url, user_id) VALUES ($1, $2, $3);", slug, longUrl, user_id)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {

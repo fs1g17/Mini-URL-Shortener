@@ -20,8 +20,6 @@ func NewAuthMW(signingSecret string) *AuthMW {
 
 func (a *AuthMW) Process(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		//headerString := c.Request().Header.Get("Authorization")
-
 		authCookie, err := c.Request().Cookie("auth")
 		if err != nil {
 			// then user failed to authenticate
@@ -31,12 +29,7 @@ func (a *AuthMW) Process(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 
 		tokenString := authCookie.Value
-		// headerArr := strings.Split(headerString, " ")
-		// tokenString := headerArr[1]
 
-		// get just the token
-
-		// here we have to validate signature, and grab user_id, stick it in context
 		token, err := jwt.Parse(
 			tokenString,
 			func(token *jwt.Token) (any, error) {

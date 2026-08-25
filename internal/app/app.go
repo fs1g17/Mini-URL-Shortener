@@ -17,7 +17,7 @@ type App struct {
 }
 
 type LinkStoreI interface {
-	GetShortenedURL(longUrl string, user_id int) (string, error)
+	CreateShortenedURL(longUrl string, user_id int) (string, error)
 	GetRedirectURL(slug string) (string, error)
 }
 
@@ -49,7 +49,7 @@ func (app *App) PostLink(c echo.Context) error {
 
 	user := user_context.FromContext(c.Request().Context())
 
-	shortenedUrl, err := app.LinkStore.GetShortenedURL(params.LongURL, user.UserID)
+	shortenedUrl, err := app.LinkStore.CreateShortenedURL(params.LongURL, user.UserID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, "something went sideways")
 	}
@@ -124,7 +124,7 @@ func (app *App) SignIn(c echo.Context) error {
 	user_id, err := app.UserStore.SignIn(params.Username, params.Password)
 	if err != nil {
 		if errors.Is(err, store.IncorrectInfoErr) {
-			return c.JSON(http.StatusUnauthorized, "incorrect username or password")
+			return c.JSON(http.StatusUnauthorized, map[string]string{"message": "incorrect username or password"})
 		}
 		return c.JSON(http.StatusInternalServerError, "something went sideways")
 	}
