@@ -1,27 +1,26 @@
 info:
-  name: Create Link
+  name: Sign In
   type: http
-  seq: 2
+  seq: 5
 
 http:
   method: POST
-  url: http://localhost:8080/user/link
+  url: http://localhost:8080/sign-in
   body:
     type: json
     data: |-
       {
-        "longURL": "https://google.com"
+        "username": "theo",
+        "password": "test"
       }
-  auth: inherit
 
 runtime:
   scripts:
     - type: after-response
       code: |-
-        const cookie = bru.getVar("cookie");
-
-        if (cookie)
-          req.setHeader("Cookie", cookie);
+        if (res.status === 200) {
+          bru.setVar("token", res.body.token)
+        }
 
 settings:
   encodeUrl: true

@@ -5,26 +5,35 @@ import (
 	"net/http"
 
 	"github.com/fs1g17/Mini-URL-Shortener/internal/store"
-	"github.com/jackc/pgx"
+	"github.com/fs1g17/Mini-URL-Shortener/internal/user_context"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
 )
 
 type App struct {
-	Conn      *pgx.Conn
-	LinkStore LinkStoreI
+	signingSecret string
+	LinkStore     LinkStoreI
+	UserStore     UserStoreI
 }
 
 type LinkStoreI interface {
-	GetShortenedURL(longUrl string) (string, error)
+	CreateShortenedURL(longUrl string, user_id int) (string, error)
 	GetRedirectURL(slug string) (string, error)
 }
 
-func NewApp() *App {
+type UserStoreI interface {
+	CreateUser(username string, password string) (int, error)
+	SignIn(username string, password string) (int, error)
+}
+
+func NewApp(signingSecret string) *App {
 	conn := store.Connect()
 	linkStore := store.NewLinkStore(conn)
+	userStore := store.NewUserStore(conn)
 	return &App{
-		Conn:      conn,
-		LinkStore: linkStore,
+		signingSecret: signingSecret,
+		LinkStore:     linkStore,
+		UserStore:     userStore,
 	}
 }
 
@@ -38,7 +47,9 @@ func (app *App) PostLink(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, "bad request")
 	}
 
-	shortenedUrl, err := app.LinkStore.GetShortenedURL(params.LongURL)
+	user := user_context.FromContext(c.Request().Context())
+
+	shortenedUrl, err := app.LinkStore.CreateShortenedURL(params.LongURL, user.UserID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, "something went sideways")
 	}
@@ -71,4 +82,59 @@ func (app *App) GetRedirect(c echo.Context) error {
 	}
 
 	return c.Redirect(http.StatusTemporaryRedirect, redirectUrl)
+}
+
+type CreateUserParams struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+func (app *App) CreateUser(c echo.Context) error {
+	var params CreateUserParams
+	if err := c.Bind(&params); err != nil {
+		return c.JSON(http.StatusBadRequest, "bad request")
+	}
+
+	user_id, err := app.UserStore.CreateUser(params.Username, params.Password)
+	if err != nil {
+		if errors.Is(err, store.UsernameTakenErr) {
+			return c.JSON(http.StatusConflict, struct {
+				Message string `json:"message"`
+			}{Message: "username already taken"})
+		}
+		return c.JSON(http.StatusInternalServerError, "couldn't create user")
+	}
+
+	return c.JSON(http.StatusCreated, struct {
+		UserId int `json:"user_id"`
+	}{UserId: user_id})
+}
+
+type SignInParams struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+func (app *App) SignIn(c echo.Context) error {
+	var params SignInParams
+	if err := c.Bind(&params); err != nil {
+		return c.JSON(http.StatusBadRequest, "bad request")
+	}
+
+	user_id, err := app.UserStore.SignIn(params.Username, params.Password)
+	if err != nil {
+		if errors.Is(err, store.IncorrectInfoErr) {
+			return c.JSON(http.StatusUnauthorized, map[string]string{"message": "incorrect username or password"})
+		}
+		return c.JSON(http.StatusInternalServerError, "something went sideways")
+	}
+
+	// generate jwt
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"username": params.Username,
+		"user_id":  user_id,
+	})
+	tokenString, err := token.SignedString([]byte(app.signingSecret))
+
+	return c.JSON(http.StatusOK, map[string]string{"token": tokenString})
 }
