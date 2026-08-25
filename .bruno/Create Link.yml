@@ -6,9 +6,6 @@ info:
 http:
   method: POST
   url: http://localhost:8080/user/link
-  headers:
-    - name: Authorization
-      value: "\tBearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6InRoZW8ifQ.mJh2Z9iehouu5x5MscSFyME8u-0VlvB9jsN3qtCLKys"
   body:
     type: json
     data: |-
@@ -16,6 +13,15 @@ http:
         "longURL": "https://google.com"
       }
   auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const cookie = bru.getVar("cookie");
+
+        if (cookie)
+          req.setHeader("Cookie", cookie);
 
 settings:
   encodeUrl: true

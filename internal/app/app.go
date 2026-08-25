@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/fs1g17/Mini-URL-Shortener/internal/store"
+	"github.com/fs1g17/Mini-URL-Shortener/internal/user_context"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
 )
@@ -16,7 +17,7 @@ type App struct {
 }
 
 type LinkStoreI interface {
-	GetShortenedURL(longUrl string) (string, error)
+	GetShortenedURL(longUrl string, user_id int) (string, error)
 	GetRedirectURL(slug string) (string, error)
 }
 
@@ -46,7 +47,9 @@ func (app *App) PostLink(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, "bad request")
 	}
 
-	shortenedUrl, err := app.LinkStore.GetShortenedURL(params.LongURL)
+	user := user_context.FromContext(c.Request().Context())
+
+	shortenedUrl, err := app.LinkStore.GetShortenedURL(params.LongURL, user.UserID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, "something went sideways")
 	}
@@ -133,6 +136,5 @@ func (app *App) SignIn(c echo.Context) error {
 	})
 	tokenString, err := token.SignedString([]byte(app.signingSecret))
 
-	c.Response().Header().Set("Authorization", "Bearer "+tokenString)
-	return c.JSON(http.StatusOK, "signed in")
+	return c.JSON(http.StatusOK, map[string]string{"token": tokenString})
 }

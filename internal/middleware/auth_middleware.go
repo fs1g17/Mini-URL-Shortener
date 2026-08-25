@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/fs1g17/Mini-URL-Shortener/internal/user_context"
 	"github.com/golang-jwt/jwt/v5"
@@ -21,10 +20,19 @@ func NewAuthMW(signingSecret string) *AuthMW {
 
 func (a *AuthMW) Process(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		headerString := c.Request().Header.Get("Authorization")
+		//headerString := c.Request().Header.Get("Authorization")
 
-		headerArr := strings.Split(headerString, " ")
-		tokenString := headerArr[1]
+		authCookie, err := c.Request().Cookie("auth")
+		if err != nil {
+			// then user failed to authenticate
+			return c.JSON(http.StatusUnauthorized, struct {
+				Message string `json:"message"`
+			}{Message: "unauthorized"})
+		}
+
+		tokenString := authCookie.Value
+		// headerArr := strings.Split(headerString, " ")
+		// tokenString := headerArr[1]
 
 		// get just the token
 

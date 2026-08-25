@@ -13,7 +13,14 @@ http:
         "username": "theo",
         "password": "test"
       }
-  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        if (res.status === 200) {
+          bru.setVar("token", res.body.token)
+        }
 
 settings:
   encodeUrl: true

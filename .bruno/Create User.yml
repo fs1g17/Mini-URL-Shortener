@@ -13,7 +13,6 @@ http:
         "username": "theo",
         "password": "test"
       }
-  auth: inherit
 
 settings:
   encodeUrl: true

@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -23,9 +24,9 @@ func NewLinkStore(conn *pgx.Conn) *LinkStore {
 	}
 }
 
-func (ls *LinkStore) GetShortenedURL(longUrl string) (string, error) {
+func (ls *LinkStore) GetShortenedURL(longUrl string, user_id int) (string, error) {
 	hasher := sha256.New()
-	hasher.Write([]byte(longUrl))
+	hasher.Write([]byte(longUrl + fmt.Sprint(user_id)))
 
 	hashBytes := hasher.Sum(nil)
 	hashString := hex.EncodeToString(hashBytes)
