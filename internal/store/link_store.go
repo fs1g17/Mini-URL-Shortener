@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -29,10 +30,15 @@ func generateSlug() string {
 	return base64.RawURLEncoding.EncodeToString(b)
 }
 
-func (ls *LinkStore) CreateShortenedURL(longUrl string, user_id int) (string, error) {
+type ShortUrlConfig struct {
+	Expire     *time.Time
+	ClickLimit *int
+}
+
+func (ls *LinkStore) CreateShortenedURL(longUrl string, user_id int, config ShortUrlConfig) (string, error) {
 	slug := generateSlug()
 
-	_, err := ls.conn.Exec(context.Background(), "INSERT INTO links (slug, redirect_url, owner_id) VALUES ($1, $2, $3);", slug, longUrl, user_id)
+	_, err := ls.conn.Exec(context.Background(), "INSERT INTO links (slug, redirect_url, owner_id, click_limit, expires) VALUES ($1, $2, $3, $4, $5);", slug, longUrl, user_id, config.ClickLimit, config.Expire)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"regexp"
+	"time"
 
 	"github.com/fs1g17/Mini-URL-Shortener/internal/store"
 	"github.com/fs1g17/Mini-URL-Shortener/internal/user_context"
@@ -18,7 +19,7 @@ type App struct {
 }
 
 type LinkStoreI interface {
-	CreateShortenedURL(longUrl string, user_id int) (string, error)
+	CreateShortenedURL(longUrl string, user_id int, config store.ShortUrlConfig) (string, error)
 	GetRedirectURL(slug string) (string, error)
 }
 
@@ -39,7 +40,9 @@ func NewApp(signingSecret string) *App {
 }
 
 type PostLinkParams struct {
-	LongURL string `json:"longURL"`
+	LongURL    string  `json:"longURL"`
+	Expire     *string `json:"expire"`
+	ClickLimit *int    `json:"click_limit"`
 }
 
 func (app *App) PostLink(c echo.Context) error {
@@ -50,7 +53,17 @@ func (app *App) PostLink(c echo.Context) error {
 
 	user := user_context.FromContext(c.Request().Context())
 
-	shortenedUrl, err := app.LinkStore.CreateShortenedURL(params.LongURL, user.UserID)
+	var expire *time.Time
+	if params.Expire != nil {
+		layout := "2006-01-02 15:04:05.000000 -0700 MST"
+		parsedTime, err := time.Parse(layout, *params.Expire)
+		expire = &parsedTime
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "time must be a valid time string like: '2012-10-31 15:50:13.793654 +0000 UTC'"})
+		}
+	}
+
+	shortenedUrl, err := app.LinkStore.CreateShortenedURL(params.LongURL, user.UserID, store.ShortUrlConfig{Expire: expire, ClickLimit: params.ClickLimit})
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, "something went sideways")
 	}
