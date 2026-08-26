@@ -68,9 +68,11 @@ type GetRedirectParams struct {
 	Slug string `param:"slug"`
 }
 
+var slugRe = regexp.MustCompile("^[A-Za-z0-9-_]{6}$")
+
 func (p *GetRedirectParams) validate() bool {
 	// check whether the slug matches
-	match, _ := regexp.MatchString("^[A-Za-z0-9-_]{6}$", p.Slug)
+	match := slugRe.MatchString(p.Slug)
 	return match
 }
 
