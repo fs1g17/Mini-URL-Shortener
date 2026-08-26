@@ -51,7 +51,17 @@ func (ls *LinkStore) GetRedirectURL(slug string) (string, error) {
 	// now we want to ensure expiry - we do that with an UPDATE ... WHERE, the WHERE clause will do the filering
 	var redirect_url string
 	var link_id int
-	err := ls.conn.QueryRow(context.Background(), "UPDATE links SET click_count = click_count + 1 WHERE slug = $1 AND (click_limit IS NULL OR click_count < click_limit) RETURNING redirect_url, id;", slug).Scan(&redirect_url, &link_id)
+
+	query :=
+		`UPDATE links 
+	SET click_count = click_count + 1 
+	WHERE 
+		slug = $1 AND 
+		(click_limit IS NULL OR click_count < click_limit) AND 
+		(expires IS NULL OR now() < expires) 
+	RETURNING redirect_url, id;`
+
+	err := ls.conn.QueryRow(context.Background(), query, slug).Scan(&redirect_url, &link_id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", NoRedirectUrl
@@ -59,7 +69,6 @@ func (ls *LinkStore) GetRedirectURL(slug string) (string, error) {
 		return "", err
 	}
 
-	//TODO: add the click event here
 	_, err = ls.conn.Exec(context.Background(), "INSERT INTO click_events (link_id) VALUES ($1)", link_id)
 	if err != nil {
 		return "", err

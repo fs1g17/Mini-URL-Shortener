@@ -3,6 +3,7 @@ package app
 import (
 	"errors"
 	"net/http"
+	"regexp"
 
 	"github.com/fs1g17/Mini-URL-Shortener/internal/store"
 	"github.com/fs1g17/Mini-URL-Shortener/internal/user_context"
@@ -67,10 +68,20 @@ type GetRedirectParams struct {
 	Slug string `param:"slug"`
 }
 
+func (p *GetRedirectParams) validate() bool {
+	// check whether the slug matches
+	match, _ := regexp.MatchString("^[A-Za-z0-9-_]{6}$", p.Slug)
+	return match
+}
+
 func (app *App) GetRedirect(c echo.Context) error {
 	var params GetRedirectParams
 	if err := c.Bind(&params); err != nil {
 		return c.JSON(http.StatusBadRequest, "bad request")
+	}
+
+	if !params.validate() {
+		return c.JSON(http.StatusBadRequest, "incorrect slug - must be base64 string of lenght 6")
 	}
 
 	redirectUrl, err := app.LinkStore.GetRedirectURL(params.Slug)
