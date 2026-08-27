@@ -29,7 +29,7 @@ type UserStoreI interface {
 }
 
 func NewApp(signingSecret string) *App {
-	conn := store.Connect()
+	conn := store.Connect("postgres://postgres:postgres@localhost:5432/postgres")
 	linkStore := store.NewLinkStore(conn)
 	userStore := store.NewUserStore(conn)
 	return &App{
