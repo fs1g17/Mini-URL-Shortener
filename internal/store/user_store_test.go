@@ -7,9 +7,8 @@ import (
 )
 
 func TestCreateUser(t *testing.T) {
-	userStore := getTestUserStore(t)
-
 	t.Run("should create new user", func(t *testing.T) {
+		userStore := getTestUserStore(t)
 		user_id, err := userStore.CreateUser("theo", "password")
 		if err != nil {
 			t.Fatalf("didn't expect error, got: %v\n", err)
@@ -31,6 +30,7 @@ func TestCreateUser(t *testing.T) {
 	})
 
 	t.Run("should fail creating duplicate user", func(t *testing.T) {
+		userStore := getTestUserStore(t)
 		_, err := userStore.CreateUser("theo", "password")
 		if err != nil {
 			t.Fatalf("didn't expect error, got: %v\n", err)
@@ -44,14 +44,13 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestSignIn(t *testing.T) {
-	userStore := getTestUserStore(t)
-
-	_, err := userStore.CreateUser("theo", "password")
-	if err != nil {
-		t.Fatalf("didn't expect error, got: %v\n", err)
-	}
-
 	t.Run("should sign in with existing user", func(t *testing.T) {
+		userStore := getTestUserStore(t)
+		_, err := userStore.CreateUser("theo", "password")
+		if err != nil {
+			t.Fatalf("didn't expect error, got: %v\n", err)
+		}
+
 		user_id, err := userStore.SignIn("theo", "password")
 		if err != nil {
 			t.Fatalf("didn't epxect error, got: %v\n", err)
@@ -63,6 +62,7 @@ func TestSignIn(t *testing.T) {
 	})
 
 	t.Run("should fail to sign in with wrong password", func(t *testing.T) {
+		userStore := getTestUserStore(t)
 		_, err := userStore.SignIn("theo", "wrong_password")
 		if !errors.Is(err, IncorrectInfoErr) {
 			t.Fatalf("want: incorrect info error, got: %v\n", err)
@@ -70,6 +70,7 @@ func TestSignIn(t *testing.T) {
 	})
 
 	t.Run("should fail to sign in with wrong password", func(t *testing.T) {
+		userStore := getTestUserStore(t)
 		_, err := userStore.SignIn("cleo", "wrong_password")
 		if !errors.Is(err, IncorrectInfoErr) {
 			t.Fatalf("want: incorrect info error, got: %v\n", err)
