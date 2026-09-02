@@ -3,25 +3,10 @@ package store
 import (
 	"context"
 	"testing"
-
-	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-func getTestStore(t *testing.T) *UserStore {
-	connString := "host=localhost user=postgres password=postgres dbname=test_db port=5432 sslmode=disable"
-
-	err := Migrate(connString)
-	if err != nil {
-		t.Fatalf("Failed to run test migrations: %v\n", err)
-	}
-
-	pgConn := Connect("postgres://postgres:postgres@localhost:5432/test_db")
-	userStore := NewUserStore(pgConn)
-	return userStore
-}
-
 func TestCreateUser(t *testing.T) {
-	userStore := getTestStore(t)
+	userStore := getTestUserStore(t)
 
 	//ensure no users present
 	var userCount int

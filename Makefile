@@ -9,3 +9,6 @@ up:
 down:
 	goose reset
 	docker compose down
+
+test:
+	go test ./... -count=1
