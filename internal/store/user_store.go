@@ -46,6 +46,7 @@ func (us *UserStore) CreateUser(username string, password string) (int, error) {
 				return 0, UsernameTakenErr
 			}
 		}
+		return 0, err
 	}
 
 	return user_id, nil

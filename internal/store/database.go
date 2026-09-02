@@ -8,10 +8,8 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func Connect() *pgx.Conn {
+func Connect(connString string) *pgx.Conn {
 	// pgx v5 takes a connection string rather than a ConnConfig literal.
-	const connString = "postgres://postgres:postgres@localhost:5432/postgres"
-
 	conn, err := pgx.Connect(context.Background(), connString)
 	if err != nil {
 		log.Fatalf("Failed to connect to postgres: %v\n", err)

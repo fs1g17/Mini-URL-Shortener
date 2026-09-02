@@ -8,12 +8,12 @@ http:
   url: http://localhost:8080/:slug
   params:
     - name: slug
-      value: a0938d
+      value: wlLUbw
       type: path
 
 settings:
   encodeUrl: true
   timeout: 0
-  followRedirects: true
+  followRedirects: false
   maxRedirects: 5
   forwardAuthorizationHeader: true

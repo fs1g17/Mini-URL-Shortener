@@ -10,7 +10,9 @@ http:
     type: json
     data: |-
       {
-        "longURL": "https://google.com"
+        "longURL": "https://google.com",
+        "click_limit": 10,
+        "expire": "2012-10-31 15:50:13.793654 +0000 UTC"
       }
   auth: inherit
 
