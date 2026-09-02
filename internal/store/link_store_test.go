@@ -128,6 +128,39 @@ func TestRedirectUrl(t *testing.T) {
 		}
 	})
 
+	t.Run("should give redirect for link with future expiry", func(t *testing.T) {
+		linkStore := getTestLinkStore(t)
+		userStore := getTestUserStore(t)
+
+		user_id, err := userStore.CreateUser("theo", "password")
+		if err != nil {
+			t.Fatalf("expected no error, got: %v\n", err)
+		}
+
+		full_url := "https://google.com"
+
+		hourFromNow := time.Now().Add(1 * time.Hour)
+		slug, err := linkStore.CreateShortenedURL(full_url, user_id, ShortUrlConfig{Expire: &hourFromNow})
+		if err != nil {
+			t.Fatalf("want: nil, got: %v\n", err)
+		}
+
+		redirect_url, err := linkStore.GetRedirectURL(slug)
+		if err != nil {
+			t.Fatalf("want nil, got: %v\n", err)
+		}
+
+		if redirect_url != full_url {
+			t.Fatalf("want: %s, got: %s\n", full_url, redirect_url)
+		}
+
+		var click_count int
+		linkStore.conn.QueryRow(context.Background(), "SELECT click_count FROM links WHERE slug = $1;", slug).Scan(&click_count)
+		if click_count != 1 {
+			t.Fatalf("want: 1, got: %d\n", click_count)
+		}
+	})
+
 	t.Run("should not give redirect for click count expired link", func(t *testing.T) {
 		linkStore := getTestLinkStore(t)
 		userStore := getTestUserStore(t)
