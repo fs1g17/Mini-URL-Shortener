@@ -69,7 +69,7 @@ func TestSignIn(t *testing.T) {
 		}
 	})
 
-	t.Run("should fail to sign in with wrong password", func(t *testing.T) {
+	t.Run("should fail to sign in with non-existent user", func(t *testing.T) {
 		userStore := getTestUserStore(t)
 		_, err := userStore.SignIn("cleo", "wrong_password")
 		if !errors.Is(err, IncorrectInfoErr) {

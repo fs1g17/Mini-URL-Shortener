@@ -44,14 +44,6 @@ func connectToTestDb(t *testing.T) *pgx.Conn {
 	return pgConn
 }
 
-func getTestUserStore(t *testing.T) *UserStore {
-	pgConn := connectToTestDb(t)
-	checkTestDb(pgConn, t)
-	resetDataBase(pgConn, t)
-	userStore := NewUserStore(pgConn)
-	return userStore
-}
-
 func checkTestDb(pgConn *pgx.Conn, t *testing.T) {
 	var db string
 	pgConn.QueryRow(context.Background(), "SELECT current_database()").Scan(&db)
@@ -67,4 +59,20 @@ func resetDataBase(pgConn *pgx.Conn, t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to truncate table: %v\n", err)
 	}
+}
+
+func getTestUserStore(t *testing.T) *UserStore {
+	pgConn := connectToTestDb(t)
+	checkTestDb(pgConn, t)
+	resetDataBase(pgConn, t)
+	userStore := NewUserStore(pgConn)
+	return userStore
+}
+
+func getTestLinkStore(t *testing.T) *LinkStore {
+	pgConn := connectToTestDb(t)
+	checkTestDb(pgConn, t)
+	resetDataBase(pgConn, t)
+	linkStore := NewLinkStore(pgConn)
+	return linkStore
 }
