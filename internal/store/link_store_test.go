@@ -122,9 +122,16 @@ func TestRedirectUrl(t *testing.T) {
 		}
 
 		var click_count int
-		linkStore.conn.QueryRow(context.Background(), "SELECT click_count FROM links WHERE slug = $1;", slug).Scan(&click_count)
+		var link_id int
+		linkStore.conn.QueryRow(context.Background(), "SELECT id, click_count FROM links WHERE slug = $1;", slug).Scan(&link_id, &click_count)
 		if click_count != 1 {
 			t.Fatalf("want: 1, got: %d\n", click_count)
+		}
+
+		var click_event_count int
+		linkStore.conn.QueryRow(context.Background(), "SELECT COUNT(*) FROM click_events WHERE link_id = $1;", link_id).Scan(&click_event_count)
+		if click_event_count != 1 {
+			t.Fatalf("want: 1, got: %d\n", click_event_count)
 		}
 	})
 
@@ -155,9 +162,16 @@ func TestRedirectUrl(t *testing.T) {
 		}
 
 		var click_count int
-		linkStore.conn.QueryRow(context.Background(), "SELECT click_count FROM links WHERE slug = $1;", slug).Scan(&click_count)
+		var link_id int
+		linkStore.conn.QueryRow(context.Background(), "SELECT id, click_count FROM links WHERE slug = $1;", slug).Scan(&link_id, &click_count)
 		if click_count != 1 {
 			t.Fatalf("want: 1, got: %d\n", click_count)
+		}
+
+		var click_event_count int
+		linkStore.conn.QueryRow(context.Background(), "SELECT COUNT(*) FROM click_events WHERE link_id = $1;", link_id).Scan(&click_event_count)
+		if click_event_count != 1 {
+			t.Fatalf("want: 1, got: %d\n", click_event_count)
 		}
 	})
 
@@ -189,9 +203,16 @@ func TestRedirectUrl(t *testing.T) {
 		}
 
 		var click_count int
-		linkStore.conn.QueryRow(context.Background(), "SELECT click_count FROM links WHERE slug = $1;", slug).Scan(&click_count)
+		var link_id int
+		linkStore.conn.QueryRow(context.Background(), "SELECT id, click_count FROM links WHERE slug = $1;", slug).Scan(&link_id, &click_count)
 		if click_count != 10 {
 			t.Fatalf("want: 10, got: %d\n", click_count)
+		}
+
+		var click_event_count int
+		linkStore.conn.QueryRow(context.Background(), "SELECT COUNT(*) FROM click_events WHERE link_id = $1;", link_id).Scan(&click_event_count)
+		if click_event_count != 0 {
+			t.Fatalf("want: 0, got: %d\n", click_event_count)
 		}
 	})
 
@@ -221,9 +242,16 @@ func TestRedirectUrl(t *testing.T) {
 		}
 
 		var click_count int
-		linkStore.conn.QueryRow(context.Background(), "SELECT click_count FROM links WHERE slug = $1;", slug).Scan(&click_count)
+		var link_id int
+		linkStore.conn.QueryRow(context.Background(), "SELECT id, click_count FROM links WHERE slug = $1;", slug).Scan(&link_id, &click_count)
 		if click_count != 0 {
 			t.Fatalf("want: 0, got: %d\n", click_count)
+		}
+
+		var click_event_count int
+		linkStore.conn.QueryRow(context.Background(), "SELECT COUNT(*) FROM click_events WHERE link_id = $1;", link_id).Scan(&click_event_count)
+		if click_event_count != 0 {
+			t.Fatalf("want: 0, got: %d\n", click_event_count)
 		}
 	})
 }
