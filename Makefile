@@ -12,3 +12,6 @@ down:
 
 test:
 	go test ./... -count=1
+
+seed:
+	docker compose exec -T db psql -U postgres -d postgres -v ON_ERROR_STOP=1 -1 < $(CURDIR)/internal/seed/seed.sql
