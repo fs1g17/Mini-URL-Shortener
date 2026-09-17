@@ -31,3 +31,13 @@ SELECT lpad(n::text, 6, '0'),
        END,
        DIV(n, 10) + 1
 FROM generate_series(0, 99) AS series(n);
+
+INSERT INTO click_events (
+       link_id, 
+       clicked_at
+)
+SELECT
+       id,
+       now() - INTERVAL '1 month' + random() * INTERVAL '1 month'
+FROM generate_series(0, 999) as series(n)
+CROSS JOIN (SELECT id FROM links);
