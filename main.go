@@ -21,6 +21,7 @@ func main() {
 
 	auth := e.Group("/user")
 	auth.POST("/link", app.PostLink, authMw.Process)
+	auth.GET("/hits-day/:link_id", app.GetHitsPerDay, authMw.Process)
 
 	if err := e.Start(":8080"); err != nil {
 		log.Fatalf("Failed to start server: %v\n", err)

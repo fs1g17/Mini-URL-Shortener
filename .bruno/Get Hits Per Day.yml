@@ -1,0 +1,29 @@
+info:
+  name: Get Hits Per Day
+  type: http
+  seq: 6
+
+http:
+  method: GET
+  url: http://localhost:8080/user/hits-day/:link_id
+  params:
+    - name: link_id
+      value: "1"
+      type: path
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const cookie = bru.getVar("cookie");
+
+        if (cookie)
+          req.setHeader("Cookie", cookie);
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
