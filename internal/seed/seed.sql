@@ -1,4 +1,6 @@
 -- password is "password" - $2a$14$lfwdV/JNa/O54I37RJx2iOqW6xrI0UONv49JLYFgmocbPTwv4GxH.
+TRUNCATE links, users, click_events RESTART IDENTITY;
+
 INSERT INTO users (username, password_hash)
 SELECT 'user_' || n,
        '$2a$14$lfwdV/JNa/O54I37RJx2iOqW6xrI0UONv49JLYFgmocbPTwv4GxH.'
