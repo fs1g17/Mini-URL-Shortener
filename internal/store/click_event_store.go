@@ -29,14 +29,15 @@ func (cs *ClickEventStore) GetHitsPerDay(link_id int, from time.Time, to time.Ti
 		LEFT JOIN (
 			SELECT date(clicked_at), count(clicked_at) as total_count
 			FROM click_events
-			WHERE clicked_at BETWEEN $1 AND $2
+			WHERE clicked_at BETWEEN $1::timestamp AND $2::timestamp
+			AND link_id = $3
 			GROUP BY date(clicked_at)
 			ORDER BY date(clicked_at)
 		) AS c
 		ON g.g = c.date;
 	`
 
-	rows, err := cs.conn.Query(context.Background(), query, from, to)
+	rows, err := cs.conn.Query(context.Background(), query, from, to, link_id)
 	if err != nil {
 		return nil, err
 	}

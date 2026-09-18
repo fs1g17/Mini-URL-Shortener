@@ -2,6 +2,7 @@ package app
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"regexp"
 	"time"
@@ -188,24 +189,22 @@ func (app *App) GetHitsPerDay(c echo.Context) error {
 	user := user_context.FromContext(c.Request().Context())
 	owns, err := app.LinkStore.OwnsLink(params.LinkId, user.UserID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, "something went sideways")
+		return c.JSON(http.StatusInternalServerError, "something went sideways")
 	}
 	if !owns {
-		c.JSON(http.StatusUnauthorized, map[string]string{"message": "you don't own this link or it doesn't exist"})
+		return c.JSON(http.StatusUnauthorized, map[string]string{"message": "you don't own this link or it doesn't exist"})
 	}
 
-	layout := "2006-01-02 15:04:05.000000 -0700 MST"
-
-	parsedTime, err := time.Parse(layout, params.From)
+	parsedTime, err := time.Parse(time.DateTime, params.From)
 	from := parsedTime
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"message": "'from' time must be a valid time string like: '2012-10-31 15:50:13.793654 +0000 UTC'"})
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": fmt.Sprintf("'from' time must be a valid time string like: '%s'", time.DateTime)})
 	}
 
-	parsedTime, err = time.Parse(layout, params.To)
+	parsedTime, err = time.Parse(time.DateTime, params.To)
 	to := parsedTime
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"message": "'to' time must be a valid time string like: '2012-10-31 15:50:13.793654 +0000 UTC'"})
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": fmt.Sprintf("'from' time must be a valid time string like: '%s'", time.DateTime)})
 	}
 
 	hitsPerDay, err := app.ClickEventStore.GetHitsPerDay(params.LinkId, from, to)
