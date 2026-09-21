@@ -5,8 +5,14 @@ info:
 
 http:
   method: GET
-  url: http://localhost:8080/user/hits-day/:link_id
+  url: http://localhost:8080/user/hits-day/:link_id?from=2026-09-01 00:00:00&to=2026-09-10 00:00:00
   params:
+    - name: from
+      value: 2026-09-01 00:00:00
+      type: query
+    - name: to
+      value: 2026-09-10 00:00:00
+      type: query
     - name: link_id
       value: "1"
       type: path
