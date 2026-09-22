@@ -19,6 +19,11 @@ func createTestUserAndLink(t *testing.T, userStore *UserStore, linkStore *LinkSt
 	if err != nil {
 		t.Fatalf("want: nil, got: %v\n", err)
 	}
+
+	_, err = linkStore.CreateShortenedURL(full_url, user_id, ShortUrlConfig{})
+	if err != nil {
+		t.Fatalf("want: nil, got: %v\n", err)
+	}
 }
 
 func emulateClick(clickEventStore *ClickEventStore, link_id int, clicked_at time.Time) {
@@ -27,7 +32,7 @@ func emulateClick(clickEventStore *ClickEventStore, link_id int, clicked_at time
 }
 
 func createTestClickEvents(clickEventStore *ClickEventStore) {
-	clicks := []time.Time{
+	link1Clicks := []time.Time{
 		time.Date(2009, 1, 12, 0, 0, 0, 0, time.UTC),
 		time.Date(2009, 1, 12, 1, 0, 0, 0, time.UTC),
 		time.Date(2009, 1, 12, 23, 29, 29, 999000, time.UTC),
@@ -39,8 +44,21 @@ func createTestClickEvents(clickEventStore *ClickEventStore) {
 		time.Date(2009, 1, 14, 4, 0, 0, 0, time.UTC),
 	}
 
-	for _, click := range clicks {
+	for _, click := range link1Clicks {
 		emulateClick(clickEventStore, 1, click)
+	}
+
+	link2Clicks := []time.Time{
+		time.Date(2009, 1, 12, 0, 0, 0, 0, time.UTC),
+		time.Date(2009, 1, 13, 0, 0, 0, 0, time.UTC),
+		time.Date(2009, 1, 13, 1, 0, 0, 0, time.UTC),
+		time.Date(2009, 1, 14, 0, 0, 0, 0, time.UTC),
+		time.Date(2009, 1, 14, 1, 0, 0, 0, time.UTC),
+		time.Date(2009, 1, 14, 2, 0, 0, 0, time.UTC),
+	}
+
+	for _, click := range link2Clicks {
+		emulateClick(clickEventStore, 2, click)
 	}
 }
 
@@ -56,26 +74,45 @@ func TestGetHitsPerDay(t *testing.T) {
 		tests := []struct {
 			day       int
 			wantCount int
+			linkId    int
 		}{
 			{
 				day:       12,
 				wantCount: 3,
+				linkId:    1,
 			},
 			{
 				day:       13,
 				wantCount: 2,
+				linkId:    1,
 			},
 			{
 				day:       14,
 				wantCount: 4,
+				linkId:    1,
+			},
+			{
+				day:       12,
+				wantCount: 1,
+				linkId:    2,
+			},
+			{
+				day:       13,
+				wantCount: 2,
+				linkId:    2,
+			},
+			{
+				day:       14,
+				wantCount: 3,
+				linkId:    2,
 			},
 		}
 
 		for _, tt := range tests {
-			t.Run(fmt.Sprintf("date: %d", tt.day), func(t *testing.T) {
+			t.Run(fmt.Sprintf("link: %d date: %d", tt.linkId, tt.day), func(t *testing.T) {
 				from := time.Date(2009, 1, tt.day, 0, 0, 0, 0, time.UTC)
 				to := time.Date(2009, 1, tt.day, 0, 0, 0, 0, time.UTC)
-				clicks, err := clickEventStore.GetHitsPerDay(1, from, to)
+				clicks, err := clickEventStore.GetHitsPerDay(tt.linkId, from, to)
 				if err != nil {
 					t.Fatalf("failed to get clicks %v\n", err)
 				}
