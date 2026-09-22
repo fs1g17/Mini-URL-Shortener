@@ -77,6 +77,11 @@ func TestGetHitsPerDay(t *testing.T) {
 			linkId    int
 		}{
 			{
+				day:       11,
+				wantCount: 0,
+				linkId:    1,
+			},
+			{
 				day:       12,
 				wantCount: 3,
 				linkId:    1,
