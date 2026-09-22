@@ -195,16 +195,16 @@ func (app *App) GetHitsPerDay(c echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"message": "you don't own this link or it doesn't exist"})
 	}
 
-	parsedTime, err := time.Parse(time.DateTime, params.From)
+	parsedTime, err := time.Parse(time.DateOnly, params.From)
 	from := parsedTime
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"message": fmt.Sprintf("'from' time must be a valid time string like: '%s'", time.DateTime)})
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": fmt.Sprintf("'from' time must be a valid time string like: '%s'", time.DateOnly)})
 	}
 
-	parsedTime, err = time.Parse(time.DateTime, params.To)
+	parsedTime, err = time.Parse(time.DateOnly, params.To)
 	to := parsedTime
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"message": fmt.Sprintf("'from' time must be a valid time string like: '%s'", time.DateTime)})
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": fmt.Sprintf("'to' time must be a valid time string like: '%s'", time.DateOnly)})
 	}
 
 	hitsPerDay, err := app.ClickEventStore.GetHitsPerDay(params.LinkId, from, to)
