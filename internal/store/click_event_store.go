@@ -19,24 +19,6 @@ func NewClickEventStore(conn *pgx.Conn) *ClickEventStore {
 }
 
 func (cs *ClickEventStore) GetHitsPerDay(link_id int, from time.Time, to time.Time) (map[time.Time]int, error) {
-	// query := `
-	// 	SELECT g::date AS date, COALESCE(c.total_count, 0) as total_count
-	// 	FROM generate_series(
-	// 		$1 AT TIME ZONE 'UTC',
-	// 		$2 AT TIME ZONE 'UTC',
-	// 		'1 day'::interval
-	// 	) AS g
-	// 	LEFT JOIN (
-	// 		SELECT date(clicked_at AT TIME ZONE 'UTC'), count(clicked_at) as total_count
-	// 		FROM click_events
-	// 		WHERE clicked_at >= $1 AND clicked_at < $2 + interval '1 day'
-	// 		AND link_id = $3
-	// 		GROUP BY date(clicked_at)
-	// 		ORDER BY date(clicked_at)
-	// 	) AS c
-	// 	ON g.g = c.date;
-	// `
-
 	query := `
 		SELECT g::date AS date, COALESCE(c.total_count, 0) as total_count
 		FROM generate_series(

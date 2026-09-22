@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 )
@@ -29,7 +30,7 @@ func createTestClickEvents(clickEventStore *ClickEventStore) {
 	clicks := []time.Time{
 		time.Date(2009, 1, 12, 0, 0, 0, 0, time.UTC),
 		time.Date(2009, 1, 12, 1, 0, 0, 0, time.UTC),
-		time.Date(2009, 1, 12, 2, 0, 0, 0, time.UTC),
+		time.Date(2009, 1, 12, 23, 29, 29, 999000, time.UTC),
 		time.Date(2009, 1, 13, 0, 0, 0, 0, time.UTC),
 		time.Date(2009, 1, 13, 1, 0, 0, 0, time.UTC),
 		time.Date(2009, 1, 14, 1, 0, 0, 0, time.UTC),
@@ -52,24 +53,74 @@ func TestGetHitsPerDay(t *testing.T) {
 	createTestClickEvents(clickEventStore)
 
 	t.Run("get clicks for 1 day", func(t *testing.T) {
+		tests := []struct {
+			day       int
+			wantCount int
+		}{
+			{
+				day:       12,
+				wantCount: 3,
+			},
+			{
+				day:       13,
+				wantCount: 2,
+			},
+			{
+				day:       14,
+				wantCount: 4,
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(fmt.Sprintf("date: %d", tt.day), func(t *testing.T) {
+				from := time.Date(2009, 1, tt.day, 0, 0, 0, 0, time.UTC)
+				to := time.Date(2009, 1, tt.day, 0, 0, 0, 0, time.UTC)
+				clicks, err := clickEventStore.GetHitsPerDay(1, from, to)
+				if err != nil {
+					t.Fatalf("failed to get clicks %v\n", err)
+				}
+
+				if len(clicks) != 1 {
+					t.Fatalf("incorrect length for returned clicks")
+				}
+
+				count, ok := clicks[from]
+				if !ok {
+					t.Fatalf("got wrong date")
+				}
+
+				if count != tt.wantCount {
+					t.Fatalf("count. want %d, got %d", tt.wantCount, count)
+				}
+			})
+		}
+	})
+
+	t.Run("get clicks for 2 days", func(t *testing.T) {
 		from := time.Date(2009, 1, 12, 0, 0, 0, 0, time.UTC)
-		to := time.Date(2009, 1, 12, 0, 0, 0, 0, time.UTC)
+		to := time.Date(2009, 1, 13, 0, 0, 0, 0, time.UTC)
 		clicks, err := clickEventStore.GetHitsPerDay(1, from, to)
 		if err != nil {
 			t.Fatalf("failed to get clicks %v\n", err)
 		}
 
-		if len(clicks) != 1 {
-			t.Fatalf("incorrect length for returned clicks")
+		expectedClicks := map[time.Time]int{
+			from: 3,
+			to:   2,
 		}
 
-		count, ok := clicks[from]
-		if !ok {
-			t.Fatalf("got wrong date")
+		if len(clicks) != len(expectedClicks) {
+			t.Fatalf("want len: %d, got len: %d\n", len(expectedClicks), len(clicks))
 		}
 
-		if count != 3 {
-			t.Fatalf("got wrong count")
+		for expectedKey, expectedValue := range expectedClicks {
+			actualValue, ok := clicks[expectedKey]
+			if !ok {
+				t.Fatalf("want missing key: %v\n", expectedKey)
+			}
+			if actualValue != expectedValue {
+				t.Fatalf("want: %v, got: %v", expectedValue, actualValue)
+			}
 		}
 	})
 }
