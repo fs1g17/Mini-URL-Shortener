@@ -165,4 +165,34 @@ func TestGetHitsPerDay(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("get clicks over range with empty days", func(t *testing.T) {
+		from := time.Date(2009, 1, 10, 0, 0, 0, 0, time.UTC)
+		mid := time.Date(2009, 1, 11, 0, 0, 0, 0, time.UTC)
+		to := time.Date(2009, 1, 12, 0, 0, 0, 0, time.UTC)
+		clicks, err := clickEventStore.GetHitsPerDay(1, from, to)
+		if err != nil {
+			t.Fatalf("failed to get clicks %v\n", err)
+		}
+
+		expectedClicks := map[time.Time]int{
+			from: 0,
+			mid:  0,
+			to:   3,
+		}
+
+		if len(clicks) != len(expectedClicks) {
+			t.Fatalf("want len: %d, got len: %d\n", len(expectedClicks), len(clicks))
+		}
+
+		for expectedKey, expectedValue := range expectedClicks {
+			actualValue, ok := clicks[expectedKey]
+			if !ok {
+				t.Fatalf("want missing key: %v\n", expectedKey)
+			}
+			if actualValue != expectedValue {
+				t.Fatalf("want: %v, got: %v", expectedValue, actualValue)
+			}
+		}
+	})
 }
