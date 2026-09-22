@@ -195,4 +195,17 @@ func TestGetHitsPerDay(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("to date before from", func(t *testing.T) {
+		from := time.Date(2009, 1, 12, 0, 0, 0, 0, time.UTC)
+		to := time.Date(2009, 1, 11, 0, 0, 0, 0, time.UTC)
+		clicks, err := clickEventStore.GetHitsPerDay(1, from, to)
+		if err != nil {
+			t.Fatalf("failed to get clicks %v\n", err)
+		}
+
+		if len(clicks) != 0 {
+			t.Fatalf("want len: 0, got len: %d\n", len(clicks))
+		}
+	})
 }
