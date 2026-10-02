@@ -33,6 +33,7 @@ type UserStoreI interface {
 
 type ClickEventStoreI interface {
 	GetHitsPerDay(link_id int, from time.Time, to time.Time) (map[time.Time]int, error)
+	GetLinkRanks(owner_id int, from time.Time, to time.Time) ([]store.LinkRankResult, error)
 }
 
 func NewApp(signingSecret string) *App {
@@ -213,4 +214,37 @@ func (app *App) GetHitsPerDay(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, hitsPerDay)
+}
+
+type GetLinkRanksParams struct {
+	From string `query:"from"`
+	To   string `query:"to"`
+}
+
+func (app *App) GetLinkRanks(c echo.Context) error {
+	var params GetHitsPerDayParams
+	if err := c.Bind(&params); err != nil {
+		return c.JSON(http.StatusBadRequest, "bad request")
+	}
+
+	user := user_context.FromContext(c.Request().Context())
+
+	parsedTime, err := time.Parse(time.DateOnly, params.From)
+	from := parsedTime
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": fmt.Sprintf("'from' time must be a valid time string like: '%s'", time.DateOnly)})
+	}
+
+	parsedTime, err = time.Parse(time.DateOnly, params.To)
+	to := parsedTime
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": fmt.Sprintf("'to' time must be a valid time string like: '%s'", time.DateOnly)})
+	}
+
+	linkRanks, err := app.ClickEventStore.GetLinkRanks(user.UserID, from, to)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "internal server error"})
+	}
+
+	return c.JSON(http.StatusOK, linkRanks)
 }

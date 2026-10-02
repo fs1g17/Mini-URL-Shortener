@@ -62,3 +62,63 @@ func (cs *ClickEventStore) GetHitsPerDay(link_id int, from time.Time, to time.Ti
 
 	return response, nil
 }
+
+type LinkRankResult struct {
+	Slug       string
+	ClickCount int
+	Rank       int
+	Percentage float64
+}
+
+func (cs *ClickEventStore) GetLinkRanks(owner_id int, from time.Time, to time.Time) ([]LinkRankResult, error) {
+	query := `
+	SELECT
+				links.slug as slug,
+				COUNT(click_events.id),
+				DENSE_RANK () OVER (
+								ORDER BY COUNT(click_events.id) DESC
+				),
+				100.0 * COUNT(click_events.id) / SUM(COUNT(click_events.id)) OVER() AS percent
+	FROM
+				links
+	LEFT JOIN click_events ON links.id = click_events.link_id
+	WHERE links.owner_id = $1
+	AND clicked_at >= $2 AND clicked_at < $3::timestamptz + interval '1 day'
+	GROUP BY links.id;
+	`
+
+	rows, err := cs.conn.Query(context.Background(), query, owner_id, from, to)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	response := make([]LinkRankResult, 0)
+
+	for rows.Next() {
+		var slug string
+		var clickCount int
+		var rank int
+		var percentage float64
+
+		err := rows.Scan(&slug, &clickCount, &rank, &percentage)
+		if err != nil {
+			return nil, err
+		}
+
+		response = append(
+			response,
+			LinkRankResult{
+				Slug:       slug,
+				ClickCount: clickCount,
+				Rank:       rank,
+				Percentage: percentage,
+			})
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("row iteration error: %w\n", err)
+	}
+
+	return response, nil
+}
