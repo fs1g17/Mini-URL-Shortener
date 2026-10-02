@@ -1,6 +1,8 @@
 -- password is "password" - $2a$14$lfwdV/JNa/O54I37RJx2iOqW6xrI0UONv49JLYFgmocbPTwv4GxH.
 TRUNCATE links, users, click_events RESTART IDENTITY;
 
+SELECT setseed(0.42); -- makes sure all our randomness is identical between runs
+
 INSERT INTO users (username, password_hash)
 SELECT 'user_' || n,
        '$2a$14$lfwdV/JNa/O54I37RJx2iOqW6xrI0UONv49JLYFgmocbPTwv4GxH.'
@@ -13,6 +15,7 @@ FROM generate_series(0, 9) AS series(n);
 
 INSERT INTO links (
               slug,
+              click_count,
               redirect_url,
               created_at,
               click_limit,
@@ -20,6 +23,7 @@ INSERT INTO links (
               owner_id
        )
 SELECT lpad(n::text, 6, '0'),
+       power(random(), 4) * 1000,
        CONCAT('https://example', n, '.com'),
        now() - (10 - MOD(n, 10)) * interval '1 day',
        CASE
@@ -34,12 +38,7 @@ SELECT lpad(n::text, 6, '0'),
        DIV(n, 10) + 1
 FROM generate_series(0, 99) AS series(n);
 
-INSERT INTO click_events (
-       link_id, 
-       clicked_at
-)
-SELECT
-       id,
+INSERT INTO click_events (link_id, clicked_at) 
+SELECT l.id,
        now() - INTERVAL '1 month' + random() * INTERVAL '1 month'
-FROM generate_series(0, 999) as series(n)
-CROSS JOIN (SELECT id FROM links);
+FROM links l, generate_series(1, l.click_count) AS s(n);
