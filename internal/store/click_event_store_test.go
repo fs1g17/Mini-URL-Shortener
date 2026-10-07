@@ -63,9 +63,9 @@ func createTestClickEvents(clickEventStore *ClickEventStore) {
 }
 
 func TestGetHitsPerDay(t *testing.T) {
-	clickEventStore := getTestClickEventStore(t)
 	userStore := getTestUserStore(t)
 	linkStore := getTestLinkStore(t)
+	clickEventStore := getTestClickEventStore(t)
 
 	createTestUserAndLink(t, userStore, linkStore)
 	createTestClickEvents(clickEventStore)
@@ -206,6 +206,130 @@ func TestGetHitsPerDay(t *testing.T) {
 
 		if len(clicks) != 0 {
 			t.Fatalf("want len: 0, got len: %d\n", len(clicks))
+		}
+	})
+}
+
+func createTestUserLinksAndClicks(t *testing.T, userStore *UserStore, linkStore *LinkStore, clickEventStore *ClickEventStore, clickEvents [][]time.Time) (int, map[string]int) {
+	user_id, err := userStore.CreateUser("theo", "password")
+	if err != nil {
+		t.Fatalf("expected no error, got: %v\n", err)
+	}
+
+	link_id_map := make(map[int]int, len(clickEvents))
+	link_slug_index_map := make(map[string]int, len(clickEvents))
+
+	for i := 0; i < len(clickEvents); i++ {
+		slug, err := linkStore.CreateShortenedURL(fmt.Sprintf("https://example%d.com", i), user_id, ShortUrlConfig{})
+		if err != nil {
+			// do something
+		}
+
+		var link_id int
+		err = linkStore.conn.QueryRow(context.Background(), "SELECT id FROM links WHERE slug = $1;", slug).Scan(&link_id)
+		if err != nil {
+			// do something
+		}
+
+		link_id_map[i] = link_id
+		link_slug_index_map[slug] = i
+	}
+
+	for link_index, link_click_timestamps := range clickEvents {
+		link_id := link_id_map[link_index]
+		for _, clicked_at := range link_click_timestamps {
+			emulateClick(clickEventStore, link_id, clicked_at)
+		}
+	}
+
+	return user_id, link_slug_index_map
+}
+
+func TestGetLinkRanks(t *testing.T) {
+	userStore := getTestUserStore(t)
+	linkStore := getTestLinkStore(t)
+	clickEventStore := getTestClickEventStore(t)
+
+	clickEvents := [][]time.Time{
+		{
+			// 12th - rank 1
+			time.Date(2009, 1, 12, 0, 0, 0, 0, time.UTC),
+			time.Date(2009, 1, 12, 1, 0, 0, 0, time.UTC),
+			time.Date(2009, 1, 12, 2, 0, 0, 0, time.UTC),
+			// 13th - rank 2
+			time.Date(2009, 1, 13, 0, 0, 0, 0, time.UTC),
+			time.Date(2009, 1, 13, 1, 0, 0, 0, time.UTC),
+			// 14th - rank 3
+			time.Date(2009, 1, 14, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			// 12th - rank 2
+			time.Date(2009, 1, 12, 0, 0, 0, 0, time.UTC),
+			time.Date(2009, 1, 12, 1, 0, 0, 0, time.UTC),
+			// 13th - rank 1
+			time.Date(2009, 1, 13, 0, 0, 0, 0, time.UTC),
+			time.Date(2009, 1, 13, 1, 0, 0, 0, time.UTC),
+			time.Date(2009, 1, 13, 2, 0, 0, 0, time.UTC),
+			// 14th - rank 2
+			time.Date(2009, 1, 14, 0, 0, 0, 0, time.UTC),
+			time.Date(2009, 1, 14, 1, 0, 0, 0, time.UTC),
+		},
+		{
+			// 12th - rank 3
+			time.Date(2009, 1, 12, 0, 0, 0, 0, time.UTC),
+			// 13th - rank 3
+			time.Date(2009, 1, 13, 0, 0, 0, 0, time.UTC),
+			// 14th - rank 1
+			time.Date(2009, 1, 14, 0, 0, 0, 0, time.UTC),
+			time.Date(2009, 1, 14, 1, 0, 0, 0, time.UTC),
+			time.Date(2009, 1, 14, 2, 0, 0, 0, time.UTC),
+		},
+	}
+
+	user_id, link_slug_index_map := createTestUserLinksAndClicks(t, userStore, linkStore, clickEventStore, clickEvents)
+
+	t.Run("test ranking by date", func(t *testing.T) {
+		tests := []struct {
+			name     string
+			from     time.Time
+			to       time.Time
+			expected []int
+		}{
+			{
+				name:     "12th",
+				from:     time.Date(2009, 1, 12, 0, 0, 0, 0, time.UTC),
+				to:       time.Date(2009, 1, 12, 0, 0, 0, 0, time.UTC),
+				expected: []int{0, 1, 2},
+			},
+			{
+				name:     "13th",
+				from:     time.Date(2009, 1, 13, 0, 0, 0, 0, time.UTC),
+				to:       time.Date(2009, 1, 13, 0, 0, 0, 0, time.UTC),
+				expected: []int{1, 0, 2},
+			},
+			{
+				name:     "14th",
+				from:     time.Date(2009, 1, 14, 0, 0, 0, 0, time.UTC),
+				to:       time.Date(2009, 1, 14, 0, 0, 0, 0, time.UTC),
+				expected: []int{2, 1, 0},
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				linkRank, err := clickEventStore.GetLinkRanks(user_id, tt.from, tt.to)
+				if err != nil {
+					t.Fatalf("didn't expect error: %v\n", err)
+				}
+
+				for i, rankedLink := range linkRank {
+					index := link_slug_index_map[rankedLink.Slug]
+
+					if index != tt.expected[i] {
+						t.Fatalf("want: %d got: %d\n", tt.expected[i], index)
+					}
+				}
+			})
 		}
 	})
 }
