@@ -332,4 +332,27 @@ func TestGetLinkRanks(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("test ranking for empty date", func(t *testing.T) {
+		linkRank, err := clickEventStore.GetLinkRanks(user_id, time.Date(2009, 1, 15, 0, 0, 0, 0, time.UTC), time.Date(2009, 1, 15, 0, 0, 0, 0, time.UTC))
+		if err != nil {
+			t.Fatalf("didn't expect error: %v\n", err)
+		}
+
+		if len(linkRank) != 3 {
+			t.Fatalf("want: %d got: %d\n", 3, len(linkRank))
+		}
+
+		for _, rankedLink := range linkRank {
+			if rankedLink.ClickCount != 0 {
+				t.Fatalf("want: %d got: %d\n", 0, rankedLink.ClickCount)
+			}
+			if rankedLink.Percentage != 0 {
+				t.Fatalf("want: %f got: %f\n", 0.0, rankedLink.Percentage)
+			}
+			if rankedLink.Rank != 1 {
+				t.Fatalf("want: %d got: %d\n", 1, rankedLink.Rank)
+			}
+		}
+	})
 }

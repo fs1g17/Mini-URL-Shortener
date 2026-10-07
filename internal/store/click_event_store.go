@@ -78,13 +78,18 @@ func (cs *ClickEventStore) GetLinkRanks(owner_id int, from time.Time, to time.Ti
 				DENSE_RANK () OVER (
 								ORDER BY COUNT(click_events.id) DESC
 				),
-				100.0 * COUNT(click_events.id) / SUM(COUNT(click_events.id)) OVER() AS percent
+				COALESCE(
+					100.0 * COUNT(click_events.id) / NULLIF(SUM(COUNT(click_events.id)) OVER (), 0),
+					0
+				) AS percent
 	FROM
 				links
-	LEFT JOIN click_events ON links.id = click_events.link_id
-	WHERE links.owner_id = $1
+	LEFT JOIN click_events 
+	ON links.id = click_events.link_id
 	AND clicked_at >= $2 AND clicked_at < $3::timestamptz + interval '1 day'
-	GROUP BY links.id;
+	WHERE links.owner_id = $1
+	GROUP BY links.id
+	ORDER BY dense_rank, slug;
 	`
 
 	rows, err := cs.conn.Query(context.Background(), query, owner_id, from, to)
