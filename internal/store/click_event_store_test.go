@@ -317,6 +317,13 @@ func TestGetLinkRanks(t *testing.T) {
 				expectedRank:  []int{2, 1, 0},
 				expectedCount: []int{3, 2, 1},
 			},
+			{
+				name:          "12th 02:00 to 13th 02:00",
+				from:          time.Date(2009, 1, 12, 2, 0, 0, 0, time.UTC),
+				to:            time.Date(2009, 1, 12, 2, 0, 0, 0, time.UTC),
+				expectedRank:  []int{0, 1, 2},
+				expectedCount: []int{3, 2, 1},
+			},
 		}
 
 		for _, tt := range tests {
