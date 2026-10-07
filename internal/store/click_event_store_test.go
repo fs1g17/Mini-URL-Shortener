@@ -290,28 +290,32 @@ func TestGetLinkRanks(t *testing.T) {
 
 	t.Run("test ranking by date", func(t *testing.T) {
 		tests := []struct {
-			name     string
-			from     time.Time
-			to       time.Time
-			expected []int
+			name          string
+			from          time.Time
+			to            time.Time
+			expectedRank  []int
+			expectedCount []int
 		}{
 			{
-				name:     "12th",
-				from:     time.Date(2009, 1, 12, 0, 0, 0, 0, time.UTC),
-				to:       time.Date(2009, 1, 12, 0, 0, 0, 0, time.UTC),
-				expected: []int{0, 1, 2},
+				name:          "12th",
+				from:          time.Date(2009, 1, 12, 0, 0, 0, 0, time.UTC),
+				to:            time.Date(2009, 1, 12, 0, 0, 0, 0, time.UTC),
+				expectedRank:  []int{0, 1, 2},
+				expectedCount: []int{3, 2, 1},
 			},
 			{
-				name:     "13th",
-				from:     time.Date(2009, 1, 13, 0, 0, 0, 0, time.UTC),
-				to:       time.Date(2009, 1, 13, 0, 0, 0, 0, time.UTC),
-				expected: []int{1, 0, 2},
+				name:          "13th",
+				from:          time.Date(2009, 1, 13, 0, 0, 0, 0, time.UTC),
+				to:            time.Date(2009, 1, 13, 0, 0, 0, 0, time.UTC),
+				expectedRank:  []int{1, 0, 2},
+				expectedCount: []int{3, 2, 1},
 			},
 			{
-				name:     "14th",
-				from:     time.Date(2009, 1, 14, 0, 0, 0, 0, time.UTC),
-				to:       time.Date(2009, 1, 14, 0, 0, 0, 0, time.UTC),
-				expected: []int{2, 1, 0},
+				name:          "14th",
+				from:          time.Date(2009, 1, 14, 0, 0, 0, 0, time.UTC),
+				to:            time.Date(2009, 1, 14, 0, 0, 0, 0, time.UTC),
+				expectedRank:  []int{2, 1, 0},
+				expectedCount: []int{3, 2, 1},
 			},
 		}
 
@@ -325,8 +329,12 @@ func TestGetLinkRanks(t *testing.T) {
 				for i, rankedLink := range linkRank {
 					index := link_slug_index_map[rankedLink.Slug]
 
-					if index != tt.expected[i] {
-						t.Fatalf("want: %d got: %d\n", tt.expected[i], index)
+					if index != tt.expectedRank[i] {
+						t.Fatalf("want: %d got: %d\n", tt.expectedRank[i], index)
+					}
+
+					if rankedLink.ClickCount != tt.expectedCount[i] {
+						t.Fatalf("want: %d got: %d\n", tt.expectedCount[i], rankedLink.ClickCount)
 					}
 				}
 			})
