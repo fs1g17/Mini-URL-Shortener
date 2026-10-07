@@ -363,4 +363,15 @@ func TestGetLinkRanks(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("test link ranks for other user", func(t *testing.T) {
+		linkRank, err := clickEventStore.GetLinkRanks(user_id+1, time.Date(2009, 1, 12, 0, 0, 0, 0, time.UTC), time.Date(2009, 1, 12, 0, 0, 0, 0, time.UTC))
+		if err != nil {
+			t.Fatalf("didn't expect error: %v\n", err)
+		}
+
+		if len(linkRank) != 0 {
+			t.Fatalf("want: %d got: %d\n", 0, len(linkRank))
+		}
+	})
 }
