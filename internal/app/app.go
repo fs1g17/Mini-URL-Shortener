@@ -2,6 +2,7 @@ package app
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"regexp"
 	"time"
@@ -13,14 +14,16 @@ import (
 )
 
 type App struct {
-	signingSecret string
-	LinkStore     LinkStoreI
-	UserStore     UserStoreI
+	signingSecret   string
+	LinkStore       LinkStoreI
+	UserStore       UserStoreI
+	ClickEventStore ClickEventStoreI
 }
 
 type LinkStoreI interface {
 	CreateShortenedURL(longUrl string, user_id int, config store.ShortUrlConfig) (string, error)
 	GetRedirectURL(slug string) (string, error)
+	OwnsLink(link_id int, user_id int) (bool, error)
 }
 
 type UserStoreI interface {
@@ -28,14 +31,21 @@ type UserStoreI interface {
 	SignIn(username string, password string) (int, error)
 }
 
+type ClickEventStoreI interface {
+	GetHitsPerDay(link_id int, from time.Time, to time.Time) (map[time.Time]int, error)
+	GetLinkRanks(owner_id int, from time.Time, to time.Time) ([]store.LinkRankResult, error)
+}
+
 func NewApp(signingSecret string) *App {
 	conn := store.Connect("postgres://postgres:postgres@localhost:5432/postgres")
 	linkStore := store.NewLinkStore(conn)
 	userStore := store.NewUserStore(conn)
+	clickEventStore := store.NewClickEventStore(conn)
 	return &App{
-		signingSecret: signingSecret,
-		LinkStore:     linkStore,
-		UserStore:     userStore,
+		signingSecret:   signingSecret,
+		LinkStore:       linkStore,
+		UserStore:       userStore,
+		ClickEventStore: clickEventStore,
 	}
 }
 
@@ -163,4 +173,78 @@ func (app *App) SignIn(c echo.Context) error {
 	tokenString, err := token.SignedString([]byte(app.signingSecret))
 
 	return c.JSON(http.StatusOK, map[string]string{"token": tokenString})
+}
+
+type GetHitsPerDayParams struct {
+	LinkId int    `param:"link_id"`
+	From   string `query:"from"`
+	To     string `query:"to"`
+}
+
+func (app *App) GetHitsPerDay(c echo.Context) error {
+	var params GetHitsPerDayParams
+	if err := c.Bind(&params); err != nil {
+		return c.JSON(http.StatusBadRequest, "bad request")
+	}
+
+	user := user_context.FromContext(c.Request().Context())
+	owns, err := app.LinkStore.OwnsLink(params.LinkId, user.UserID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, "something went sideways")
+	}
+	if !owns {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"message": "you don't own this link or it doesn't exist"})
+	}
+
+	parsedTime, err := time.Parse(time.DateOnly, params.From)
+	from := parsedTime
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": fmt.Sprintf("'from' time must be a valid time string like: '%s'", time.DateOnly)})
+	}
+
+	parsedTime, err = time.Parse(time.DateOnly, params.To)
+	to := parsedTime
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": fmt.Sprintf("'to' time must be a valid time string like: '%s'", time.DateOnly)})
+	}
+
+	hitsPerDay, err := app.ClickEventStore.GetHitsPerDay(params.LinkId, from, to)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "internal server error"})
+	}
+
+	return c.JSON(http.StatusOK, hitsPerDay)
+}
+
+type GetLinkRanksParams struct {
+	From string `query:"from"`
+	To   string `query:"to"`
+}
+
+func (app *App) GetLinkRanks(c echo.Context) error {
+	var params GetHitsPerDayParams
+	if err := c.Bind(&params); err != nil {
+		return c.JSON(http.StatusBadRequest, "bad request")
+	}
+
+	user := user_context.FromContext(c.Request().Context())
+
+	parsedTime, err := time.Parse(time.DateOnly, params.From)
+	from := parsedTime
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": fmt.Sprintf("'from' time must be a valid time string like: '%s'", time.DateOnly)})
+	}
+
+	parsedTime, err = time.Parse(time.DateOnly, params.To)
+	to := parsedTime
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": fmt.Sprintf("'to' time must be a valid time string like: '%s'", time.DateOnly)})
+	}
+
+	linkRanks, err := app.ClickEventStore.GetLinkRanks(user.UserID, from, to)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "internal server error"})
+	}
+
+	return c.JSON(http.StatusOK, linkRanks)
 }

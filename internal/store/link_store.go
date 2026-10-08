@@ -82,3 +82,13 @@ func (ls *LinkStore) GetRedirectURL(slug string) (string, error) {
 
 	return redirect_url, nil
 }
+
+func (ls *LinkStore) OwnsLink(link_id int, user_id int) (bool, error) {
+	var owns bool
+	err := ls.conn.QueryRow(context.Background(), "select exists (select * from links where id=$1 AND owner_id=$2)", link_id, user_id).Scan(&owns)
+	if err != nil {
+		return false, err
+	}
+
+	return owns, nil
+}

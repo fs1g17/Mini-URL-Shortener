@@ -76,3 +76,11 @@ func getTestLinkStore(t *testing.T) *LinkStore {
 	linkStore := NewLinkStore(pgConn)
 	return linkStore
 }
+
+func getTestClickEventStore(t *testing.T) *ClickEventStore {
+	pgConn := connectToTestDb(t)
+	checkTestDb(pgConn, t)
+	resetDataBase(pgConn, t)
+	clickEventStore := NewClickEventStore(pgConn)
+	return clickEventStore
+}

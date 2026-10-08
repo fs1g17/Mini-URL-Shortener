@@ -10,8 +10,8 @@ http:
     type: json
     data: |-
       {
-        "username": "theo",
-        "password": "test"
+        "username": "user_0",
+        "password": "password"
       }
 
 runtime:
